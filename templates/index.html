@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Farm Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f7f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .card { border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .npk-val { font-size: 2rem; font-weight: bold; color: #2c3e50; }
+        .advisory-box { background-color: #27ae60; color: white; padding: 20px; border-radius: 15px; text-align: center; }
+        .advisory-text { font-size: 2.5rem; font-weight: bold; text-transform: uppercase; margin-top: 10px;}
+    </style>
+</head>
+<body>
+
+<div class="container mt-5">
+    <a href="/logout" class="btn btn-danger float-end mt-2">🚪 Logout</a>
+    <h2 class="mb-4 text-center text-success">🌱 Real-Time Precision Agriculture Dashboard</h2>
+    
+    <div class="row">
+        <div class="col-md-12 mb-4">
+            <div class="advisory-box">
+                <h4>AI Crop Recommendation</h4>
+                <div class="advisory-text" id="crop-display">Waiting for data...</div>
+                <div id="advisory-display" style="margin-top: 15px; font-size: 1.2rem; font-style: italic;">Waiting for advisory...</div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card text-center p-4">
+                <h5 class="text-muted">Nitrogen (N)</h5>
+                <div class="npk-val" id="n-val">0</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center p-4">
+                <h5 class="text-muted">Phosphorus (P)</h5>
+                <div class="npk-val" id="p-val">0</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center p-4">
+                <h5 class="text-muted">Potassium (K)</h5>
+                <div class="npk-val" id="k-val">0</div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mt-2">
+            <div class="card p-3"><strong>🌡️ Temp: </strong> <span id="temp-val">0</span> °C</div>
+        </div>
+        <div class="col-md-3 mt-2">
+            <div class="card p-3"><strong>💧 Humidity: </strong> <span id="hum-val">0</span> %</div>
+        </div>
+        <div class="col-md-3 mt-2">
+            <div class="card p-3"><strong>🧪 pH Level: </strong> <span id="ph-val">0</span></div>
+        </div>
+        <div class="col-md-3 mt-2">
+            <div class="card p-3"><strong>🌧️ Rainfall: </strong> <span id="rain-val">0</span> mm</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Function to fetch data from Flask API
+    function fetchLiveData() {
+        fetch('/api/live-data')
+            .then(response => response.json())
+            .then(data => {
+                // Update DOM elements with new data
+                document.getElementById('crop-display').innerText = data.predicted_crop;
+                document.getElementById('n-val').innerText = data.N;
+                document.getElementById('p-val').innerText = data.P;
+                document.getElementById('k-val').innerText = data.K;
+                document.getElementById('temp-val').innerText = parseFloat(data.temperature).toFixed(1);
+                document.getElementById('hum-val').innerText = parseFloat(data.humidity).toFixed(1);
+                document.getElementById('ph-val').innerText = parseFloat(data.ph).toFixed(2);
+                document.getElementById('rain-val').innerText = parseFloat(data.rainfall).toFixed(1);
+                document.getElementById('advisory-display').innerText = data.advisory;
+            })
+            .catch(error => console.error('Error fetching data:', error));
+    }
+
+    // Refresh the data every 2 seconds (2000 milliseconds)
+    setInterval(fetchLiveData, 2000);
+    
+    // Fetch immediately on load
+    fetchLiveData();
+</script>
+
+</body>
+</html>
