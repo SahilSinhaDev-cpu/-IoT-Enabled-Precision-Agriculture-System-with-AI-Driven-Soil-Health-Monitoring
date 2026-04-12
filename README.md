@@ -10,7 +10,7 @@ This project is a full-stack IoT and Machine Learning solution designed to moder
 
 Additionally, it features a secure web dashboard for real-time visualization and integrates with the **Twilio API** to send critical SMS alerts directly to the farmer's mobile device when soil conditions degrade.
 
-*(Note to Self: Add a screenshot of your beautiful green dashboard here later!)*
+<img width="1076" height="775" alt="Screenshot 2026-04-12 at 11 08 51 AM" src="https://github.com/user-attachments/assets/46116984-be44-4c06-97fb-5ee2fe63b0f4" />
 
 ---
 
