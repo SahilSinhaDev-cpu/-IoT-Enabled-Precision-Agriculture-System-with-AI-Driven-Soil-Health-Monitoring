@@ -1,5 +1,6 @@
 <div align="center">
-  <img src="https://github.com/user-attachments/assets/46116984-be44-4c06-97fb-5ee2fe63b0f4" width="80%" alt="Project Dashboard Screenshot"/>
+  <img width="1436" height="778" alt="Screenshot 2026-05-13 at 12 04 13 PM" src="https://github.com/user-attachments/assets/67fef30d-4678-4510-b8a5-e9bf23b2cf6e" />
+<img width="1421" height="781" alt="Screenshot 2026-05-13 at 12 03 36 PM" src="https://github.com/user-attachments/assets/e2a2cdd8-74a2-431e-9983-5d96c7f73164" />
   <h1>🌱 IoT-Enabled Precision Agriculture & AI Soil Monitoring</h1>
   <p>A full-stack IoT and Machine Learning solution for modern farming, providing real-time crop recommendations and critical soil health alerts via a secure web dashboard and SMS notifications.</p>
 </div>
