@@ -2,24 +2,22 @@ from flask import Flask, request, jsonify, render_template, redirect, url_for, s
 import pickle
 import numpy as np
 from twilio.rest import Client
+import os # NEW: To handle environment variables for security
+from dotenv import load_dotenv
+
+
+load_dotenv() # This loads the variables from the .env file
+
+# Now use os.getenv instead of hardcoding strings!
+account_sid = os.getenv('TWILIO_ACCOUNT_SID')
+auth_token = os.getenv('TWILIO_AUTH_TOKEN')
 
 app = Flask(__name__)
 # NEW: Secret key is required to secure user login sessions
-app.secret_key = "super_secret_farm_key" 
+# BEST PRACTICE: Use an environment variable for the secret key.
+# The second argument is a default value for local development.
+app.secret_key = os.getenv("SECRET_KEY", "super_secret_farm_key") 
 
-# ==========================================
-# TWILIO SETUP 
-# ==========================================
-TWILIO_ACCOUNT_SID = "YOUR_TWILIO_SID_HERE"
-TWILIO_AUTH_TOKEN = "YOUR_TWILIO_TOKEN_HERE"
-TWILIO_PHONE_NUMBER = '+16624384476' 
-YOUR_PERSONAL_NUMBER = '+18777804236' 
-
-try:
-    twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
-except Exception as e:
-    print(f"Twilio init error: {e}")
-# ==========================================
 
 # Load the trained model
 print(" * Loading AI Model...")
@@ -31,7 +29,8 @@ latest_sensor_data = {
     "N": 0, "P": 0, "K": 0, 
     "temperature": 0.0, "humidity": 0.0, "ph": 0.0, "rainfall": 0.0, 
     "predicted_crop": "Waiting for sensor data...",
-    "advisory": "Waiting for sensor data..."
+    "advisory": "Waiting for sensor data...",
+    "status": "OPTIMAL" # NEW: Add status to the global state
 }
 
 # ==========================================
@@ -92,26 +91,36 @@ def predict():
             advisory = "Ensure field is flooded to 5cm."
         elif prediction == "Maize":
             advisory = "Ensure good drainage. Apply Zinc if needed."
+        elif prediction == "Soybean":
+            advisory = "Ensure proper soil inoculation for nitrogen fixation. Monitor for common pests."
+
+        # Centralized Status Logic
+        status = "OPTIMAL"
+        is_critical = data['N'] < 60 or data['temperature'] > 35.0
 
         # SMS Alert Logic
-        if data['N'] < 60 or data['temperature'] > 35.0:
+        if is_critical:
+            status = "CRITICAL"
             alert_message = f"⚠️ FARM ALERT: Critical levels detected!\nCrop: {prediction}\nNitrogen: {data['N']}\nTemp: {data['temperature']}°C"
             try:
                 twilio_client.messages.create(body=alert_message, from_=TWILIO_PHONE_NUMBER, to=YOUR_PERSONAL_NUMBER)
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"Twilio SMS failed to send: {e}") # Log the error
 
+        # The response sent back to the simulator
         response = {
             'predicted_crop': prediction,
             'advisory': advisory,
-            'status': 'success'
+            'status': 'success' # This status is for the HTTP request, not the farm status
         }
         
         print(f"Received: {features} -> Prediction: {prediction}")
         
+        # Update the global state for the dashboard to fetch
         latest_sensor_data = data.copy()
         latest_sensor_data['predicted_crop'] = str(prediction)
         latest_sensor_data['advisory'] = advisory
+        latest_sensor_data['status'] = status # NEW: Update status here
         
         return jsonify(response)
 

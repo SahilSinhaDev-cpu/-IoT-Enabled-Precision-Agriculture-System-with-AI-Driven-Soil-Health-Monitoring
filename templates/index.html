@@ -1,93 +1,462 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Farm Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+{% extends "base.html" %}
+
+{% block title %}AgriTech AI Dashboard{% endblock %}
+
+{% block styles %}
+
+    <!-- Custom CSS for AgriTech Aesthetics -->
     <style>
-        body { background-color: #f4f7f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .card { border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .npk-val { font-size: 2rem; font-weight: bold; color: #2c3e50; }
-        .advisory-box { background-color: #27ae60; color: white; padding: 20px; border-radius: 15px; text-align: center; }
-        .advisory-text { font-size: 2.5rem; font-weight: bold; text-transform: uppercase; margin-top: 10px;}
+        :root {
+            --primary-green: #28a745;
+            --dark-green: #1e7e34;
+            --earthy-brown: #5c4033;
+            --light-gray: #f0f2f5;
+            --text-dark: #2c3e50;
+            /* Dark Mode Palette */
+            --dm-bg: #1a1a1a;
+            --dm-card-bg: #2c2c2c;
+            --dm-text: #e0e0e0;
+            --dm-text-muted: #888;
+            --dm-border: #444;
+        }
+
+        body { 
+            background-color: var(--light-gray); 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        }
+
+        .navbar {
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .card { 
+            border-radius: 0.75rem; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border: none;
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+        }
+
+        .card-icon {
+            font-size: 1.75rem;
+            color: var(--primary-green);
+        }
+
+        .stat-value {
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        /* The Intelligence Layer */
+        .ai-panel {
+            background: linear-gradient(135deg, var(--primary-green), var(--dark-green));
+            color: white;
+            border-radius: 0.75rem;
+        }
+        .ai-crop-recommendation {
+            font-size: 2.5rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* The Action Layer */
+        .status-panel {
+            transition: background-color 0.5s ease;
+        }
+        .status-optimal { background-color: #d4edda; color: #155724; }
+        .status-warning { background-color: #fff3cd; color: #856404; }
+        .status-critical { background-color: #f8d7da; color: #721c24; }
+
+        /* -- ULTIMATE UI UPGRADES -- */
+
+        /* 1. Card Load-in Animation */
+        @keyframes card-fade-in {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .card.animated {
+            opacity: 0; /* Start hidden */
+            animation: card-fade-in 0.6s ease-out forwards;
+        }
+
+        /* 2. Shimmer effect for loading placeholders */
+        @keyframes shimmer {
+            to { background-position-x: -200%; }
+        }
+        .shimmer-placeholder {
+            background: #eee;
+            background: linear-gradient(110deg, #ececec 8%, #f5f5f5 18%, #ececec 33%);
+            border-radius: 6px;
+            background-size: 200% 100%;
+            animation: shimmer 1.5s linear infinite;
+            color: transparent;
+            user-select: none;
+        }
+
+        /* 3. Dark Mode Styles */
+        body.dark-mode {
+            background-color: var(--dm-bg);
+            color: var(--dm-text);
+        }
+        body.dark-mode .card {
+            background-color: var(--dm-card-bg);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        body.dark-mode .navbar {
+            background-color: var(--dm-card-bg);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        body.dark-mode .navbar-brand {
+            color: var(--primary-green) !important;
+        }
+        body.dark-mode .text-dark {
+            color: var(--dm-text) !important;
+        }
+        body.dark-mode .text-muted {
+            color: var(--dm-text-muted) !important;
+        }
+        body.dark-mode .stat-value {
+            color: var(--dm-text);
+        }
+        .form-check-label {
+            color: var(--text-dark);
+            transition: color 0.2s ease-in-out;
+        }
+        body.dark-mode .form-check-label {
+            color: var(--dm-text);
+        }
     </style>
-</head>
-<body>
+{% endblock %}
 
-<div class="container mt-5">
-    <a href="/logout" class="btn btn-danger float-end mt-2">🚪 Logout</a>
-    <h2 class="mb-4 text-center text-success">🌱 Real-Time Precision Agriculture Dashboard</h2>
-    
-    <div class="row">
-        <div class="col-md-12 mb-4">
-            <div class="advisory-box">
-                <h4>AI Crop Recommendation</h4>
-                <div class="advisory-text" id="crop-display">Waiting for data...</div>
-                <div id="advisory-display" style="margin-top: 15px; font-size: 1.2rem; font-style: italic;">Waiting for advisory...</div>
+{% block content %}<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-light mb-4">
+    <div class="container-fluid">
+        <a class="navbar-brand text-success fw-bold" href="#">
+            <i class="fas fa-leaf"></i> AgriTech AI
+        </a>
+        <div class="d-flex align-items-center">
+            <!-- Dark Mode Toggle -->
+            <div class="form-check form-switch me-3">
+                <input class="form-check-input" type="checkbox" role="switch" id="darkModeSwitch">
+                <label class="form-check-label" for="darkModeSwitch"><i class="fas fa-sun"></i></label>
             </div>
-        </div>
-
-        <div class="col-md-4">
-            <div class="card text-center p-4">
-                <h5 class="text-muted">Nitrogen (N)</h5>
-                <div class="npk-val" id="n-val">0</div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card text-center p-4">
-                <h5 class="text-muted">Phosphorus (P)</h5>
-                <div class="npk-val" id="p-val">0</div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card text-center p-4">
-                <h5 class="text-muted">Potassium (K)</h5>
-                <div class="npk-val" id="k-val">0</div>
-            </div>
-        </div>
-
-        <div class="col-md-3 mt-2">
-            <div class="card p-3"><strong>🌡️ Temp: </strong> <span id="temp-val">0</span> °C</div>
-        </div>
-        <div class="col-md-3 mt-2">
-            <div class="card p-3"><strong>💧 Humidity: </strong> <span id="hum-val">0</span> %</div>
-        </div>
-        <div class="col-md-3 mt-2">
-            <div class="card p-3"><strong>🧪 pH Level: </strong> <span id="ph-val">0</span></div>
-        </div>
-        <div class="col-md-3 mt-2">
-            <div class="card p-3"><strong>🌧️ Rainfall: </strong> <span id="rain-val">0</span> mm</div>
+            <!-- Logout Button -->
+            <a href="/logout" class="btn btn-outline-danger">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
         </div>
     </div>
-</div>
+</nav>
 
-<script>
-    // Function to fetch data from Flask API
-    function fetchLiveData() {
-        fetch('/api/live-data')
-            .then(response => response.json())
-            .then(data => {
-                // Update DOM elements with new data
-                document.getElementById('crop-display').innerText = data.predicted_crop;
-                document.getElementById('n-val').innerText = data.N;
-                document.getElementById('p-val').innerText = data.P;
-                document.getElementById('k-val').innerText = data.K;
-                document.getElementById('temp-val').innerText = parseFloat(data.temperature).toFixed(1);
-                document.getElementById('hum-val').innerText = parseFloat(data.humidity).toFixed(1);
-                document.getElementById('ph-val').innerText = parseFloat(data.ph).toFixed(2);
-                document.getElementById('rain-val').innerText = parseFloat(data.rainfall).toFixed(1);
-                document.getElementById('advisory-display').innerText = data.advisory;
-            })
-            .catch(error => console.error('Error fetching data:', error));
+<div class="container-fluid">
+    <div class="row">
+
+        <!-- Main Content Area (Perception & Visualization) -->
+        <div class="col-lg-8">
+            <!-- Dashboard Header -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="text-dark fw-bold mb-0">Live Farm Overview</h4>
+                <small class="text-muted" id="last-updated">Connecting to sensors...</small>
+            </div>
+
+            <!-- Stat Cards Row 1: NPK -->
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <div class="card p-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title text-muted">Nitrogen (N)</h6>
+                                <span class="stat-value" id="n-val">...</span>
+                            </div>
+                            <i class="fas fa-seedling card-icon"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="card p-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title text-muted">Phosphorus (P)</h6>
+                                <span class="stat-value" id="p-val">...</span>
+                            </div>
+                            <i class="fas fa-leaf card-icon"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="card p-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title text-muted">Potassium (K)</h6>
+                                <span class="stat-value" id="k-val">...</span>
+                            </div>
+                            <i class="fas fa-spa card-icon"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stat Cards Row 2: Environmental -->
+            <div class="row">
+                <div class="col-md-3 mb-4"><div class="card text-center p-3"><i class="fas fa-thermometer-half card-icon mb-2"></i><h6>Temperature</h6><span id="temp-val">...</span> °C</div></div>
+                <div class="col-md-3 mb-4"><div class="card text-center p-3"><i class="fas fa-tint card-icon mb-2"></i><h6>Humidity</h6><span id="hum-val">...</span> %</div></div>
+                <div class="col-md-3 mb-4"><div class="card text-center p-3"><i class="fas fa-flask card-icon mb-2"></i><h6>pH Level</h6><span id="ph-val">...</span></div></div>
+                <div class="col-md-3 mb-4"><div class="card text-center p-3"><i class="fas fa-cloud-rain card-icon mb-2"></i><h6>Rainfall</h6><span id="rain-val">...</span> mm</div></div>
+            </div>
+
+            <!-- Data Visualization -->
+            <div class="card p-3">
+                <h5 class="card-title">Live Nutrient Levels (N-P-K)</h5>
+                <canvas id="npkChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Right Sidebar (Intelligence & Action) -->
+        <div class="col-lg-4">
+            <!-- AI Recommendation Panel -->
+            <div class="card ai-panel p-4 text-center mb-4">
+                <h5 class="mb-3"><i class="fas fa-brain"></i> AI Recommendation</h5>
+                <div class="ai-crop-recommendation" id="crop-display">
+                    <span class="shimmer-placeholder">WAITING...</span>
+                </div>
+                <p class="mt-3 fst-italic" id="advisory-display">Waiting for sensor data...</p>
+            </div>
+
+            <!-- System Status & Alerts Panel -->
+            <div id="status-panel" class="card status-panel p-4 text-center status-optimal">
+                <h5 class="mb-3"><i class="fas fa-shield-alt"></i> System Status</h5>
+                <h4 id="status-text" class="fw-bold">OPTIMAL</h4>
+                <p id="status-alert-message" class="mt-2">All systems are running normally.</p>
+            </div>
+        </div>
+    </div>
+</div>{% endblock %}
+
+{% block scripts %}<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    // --- 1. CHART.JS SETUP ---
+    const ctx = document.getElementById('npkChart').getContext('2d');
+    const npkChart = new Chart(ctx, {
+        type: 'line', // Changed from 'bar' to 'line'
+        data: {
+            labels: [], // X-axis labels (timestamps) will be added dynamically
+            datasets: [{
+                label: 'Nitrogen (N)',
+                data: [], // N values over time
+                borderColor: '#28a745',
+                backgroundColor: 'rgba(40, 167, 69, 0.2)',
+                fill: true,
+                tension: 0.4 // Makes the line smooth
+            }, {
+                label: 'Phosphorus (P)',
+                data: [], // P values over time
+                borderColor: '#f0ad4e',
+                backgroundColor: 'rgba(240, 173, 78, 0.2)',
+                fill: true,
+                tension: 0.4
+            }, {
+                label: 'Potassium (K)',
+                data: [], // K values over time
+                borderColor: '#3498db',
+                backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { 
+                legend: { 
+                    display: true, // Show legend for N, P, K
+                    position: 'top'
+                } 
+            },
+            scales: {
+                x: {
+                    ticks: { color: '#6c757d' },
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                },
+                y: { 
+                    beginAtZero: true, max: 150, // Set a reasonable max for NPK
+                    title: { display: true, text: 'Value', color: '#6c757d' },
+                    ticks: { color: '#6c757d' },
+                    grid: { color: 'rgba(0,0,0,0.1)' }
+                }
+            }
+        }
+    });
+
+    // --- 2. DOM ELEMENT REFERENCES ---
+    const dom = {
+        crop: document.getElementById('crop-display'),
+        advisory: document.getElementById('advisory-display'),
+        n: document.getElementById('n-val'),
+        p: document.getElementById('p-val'),
+        k: document.getElementById('k-val'),
+        temp: document.getElementById('temp-val'),
+        hum: document.getElementById('hum-val'),
+        ph: document.getElementById('ph-val'),
+        rain: document.getElementById('rain-val'),
+        statusPanel: document.getElementById('status-panel'),
+        statusText: document.getElementById('status-text'),
+        statusAlert: document.getElementById('status-alert-message'),
+        lastUpdated: document.getElementById('last-updated'),
+    };
+
+    // --- 3. DYNAMIC ANIMATION HELPERS ---
+    function animateValue(element, start, end, duration) {
+        if (start === end) return;
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            const current = Math.floor(progress * (end - start) + start);
+            element.innerText = current;
+            if (progress < 1) window.requestAnimationFrame(step);
+        };
+        window.requestAnimationFrame(step);
     }
 
-    // Refresh the data every 2 seconds (2000 milliseconds)
-    setInterval(fetchLiveData, 2000);
-    
-    // Fetch immediately on load
-    fetchLiveData();
-</script>
+    // --- 3. ASYNCHRONOUS DATA POLLING ---
+    async function fetchLiveData() {
+        try {
+            const response = await fetch('/api/live-data');
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const data = await response.json();
 
-</body>
-</html>
+            // Update UI elements
+            updateDashboardUI(data);
+            
+            // Update Chart.js
+            updateChart(data);
+
+            // Update Status Panel
+            updateStatus(data);
+
+        } catch (error) {
+            console.error("Fetch Error:", error);
+            // You could display an error on the dashboard here
+        }
+    }
+
+    // --- 4. UI & CHART UPDATE LOGIC ---
+    function updateDashboardUI(data) {
+        // Animate the stat values
+        animateValue(dom.n, parseInt(dom.n.innerText) || 0, data.N || 0, 500);
+        animateValue(dom.p, parseInt(dom.p.innerText) || 0, data.P || 0, 500);
+        animateValue(dom.k, parseInt(dom.k.innerText) || 0, data.K || 0, 500);
+
+        // Update non-animated values
+        dom.crop.innerText = data.predicted_crop || 'N/A'; // This removes the shimmer
+        dom.advisory.innerText = data.advisory || '...';
+        dom.temp.innerText = parseFloat(data.temperature).toFixed(1) || 0;
+        dom.hum.innerText = parseFloat(data.humidity).toFixed(1) || 0;
+        dom.ph.innerText = parseFloat(data.ph).toFixed(2) || 0;
+        dom.rain.innerText = parseFloat(data.rainfall).toFixed(1) || 0;
+
+        // Update the "last updated" timestamp
+        dom.lastUpdated.innerText = `Last updated: ${new Date().toLocaleTimeString()}`;
+    }
+
+    function updateChart(data) {
+        const MAX_DATA_POINTS = 15; // Keep only the last 15 readings
+        const now = new Date().toLocaleTimeString();
+
+        // Add new timestamp label
+        npkChart.data.labels.push(now);
+
+        // Add new data to each dataset
+        npkChart.data.datasets[0].data.push(data.N);
+        npkChart.data.datasets[1].data.push(data.P);
+        npkChart.data.datasets[2].data.push(data.K);
+
+        // Enforce the maximum number of data points (sliding window)
+        if (npkChart.data.labels.length > MAX_DATA_POINTS) {
+            npkChart.data.labels.shift(); // Remove the oldest label
+            npkChart.data.datasets.forEach(dataset => {
+                dataset.data.shift(); // Remove the oldest data point from each dataset
+            });
+        }
+
+        npkChart.update();
+    }
+
+    function updateStatus(data) {
+        // The backend is now the single source of truth for status
+        const status = data.status || 'OPTIMAL';
+        
+        // Reset classes
+        dom.statusPanel.classList.remove('status-optimal', 'status-warning', 'status-critical');
+
+        if (status === 'CRITICAL') {
+            dom.statusPanel.classList.add('status-critical');
+            dom.statusText.innerText = 'CRITICAL';
+            dom.statusAlert.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Critical levels detected! Twilio SMS alert has been triggered.';
+        } else {
+            dom.statusPanel.classList.add('status-optimal');
+            dom.statusText.innerText = 'OPTIMAL';
+            dom.statusAlert.innerText = 'All systems are running normally.';
+        }
+    }
+
+    // --- 5. INITIALIZE AND SET INTERVAL ---
+    // Staggered animation for cards on load
+    document.querySelectorAll('.card').forEach((card, index) => {
+        card.style.animationDelay = `${index * 100}ms`;
+        card.classList.add('animated');
+    });
+
+    // --- 6. DARK MODE TOGGLE ---
+    const themeSwitch = document.getElementById('darkModeSwitch');
+    const body = document.body;
+    const themeIcon = document.querySelector('#darkModeSwitch + label i');
+
+    function applyTheme(theme) {
+        if (theme === 'dark') {
+            body.classList.add('dark-mode');
+            themeSwitch.checked = true;
+            themeIcon.classList.remove('fa-sun');
+            themeIcon.classList.add('fa-moon');
+        } else {
+            body.classList.remove('dark-mode');
+            themeSwitch.checked = false;
+            themeIcon.classList.remove('fa-moon');
+            themeIcon.classList.add('fa-sun');
+        }
+        updateChartTheme(theme);
+    }
+
+    function updateChartTheme(theme) {
+        const isDark = theme === 'dark';
+        const tickColor = isDark ? 'rgba(255, 255, 255, 0.7)' : '#6c757d';
+        const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+        const legendColor = isDark ? 'rgba(255, 255, 255, 0.9)' : '#2c3e50';
+
+        npkChart.options.scales.x.ticks.color = tickColor;
+        npkChart.options.scales.y.ticks.color = tickColor;
+        npkChart.options.scales.y.title.color = tickColor;
+        npkChart.options.scales.x.grid.color = gridColor;
+        npkChart.options.scales.y.grid.color = gridColor;
+        npkChart.options.plugins.legend.labels.color = legendColor;
+        npkChart.update();
+    }
+
+    themeSwitch.addEventListener('change', () => {
+        const newTheme = themeSwitch.checked ? 'dark' : 'light';
+        localStorage.setItem('theme', newTheme);
+        applyTheme(newTheme);
+    });
+
+    // On page load, check for saved theme and apply it
+    applyTheme(localStorage.getItem('theme') || 'light');
+    fetchLiveData(); // Fetch data immediately on page load
+    setInterval(fetchLiveData, 3000); // Refresh data every 3 seconds
+});
+</script>{% endblock %}
