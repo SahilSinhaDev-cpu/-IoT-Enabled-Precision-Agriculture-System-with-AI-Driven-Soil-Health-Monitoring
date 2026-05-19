@@ -23,10 +23,12 @@
 | Feature | Description |
 | :--- | :--- |
 | **🧠 AI Crop Recommendation** | A **Random Forest Classifier**, trained on a 3,500-sample dataset, predicts the optimal crop (e.g., Rice, Maize, Coffee) based on live soil and environmental data. |
-| **📡 Real-Time IoT Processing** | A decoupled architecture where edge sensors (simulated or physical) transmit JSON data to a central Flask REST API for processing. |
+| **📈 Historical Data Visualization** | View and analyze historical sensor data through interactive charts, allowing for trend identification and long-term farm management. |
+| **� Real-Time IoT Processing** | A decoupled architecture where edge sensors (simulated or physical) transmit JSON data to a central Flask REST API for processing. |
 | **📊 Dynamic Web Dashboard** | A secure, login-protected dashboard built with Flask and vanilla JavaScript. It uses AJAX polling to display live data, charts, and AI insights without page reloads. |
 | **🚨 Automated SMS Alerts** | Integrates with the **Twilio API** to send instant SMS notifications to the farmer's phone when critical thresholds (e.g., low nitrogen, high temperature) are breached. |
-| **🔒 Secure User Authentication** | The dashboard is protected by a session-based login system, ensuring that only authorized users can view sensitive farm data. |
+| **🗃️ Persistent Data Logging** | All sensor readings and AI predictions are automatically logged to a SQLite database, enabling historical analysis and data export. |
+| **🔒 Secure User Authentication** | The dashboard is protected by a session-based login system with hashed password storage, ensuring only authorized users can view sensitive farm data. |
 | **🌓 Light & Dark Mode** | A modern, user-friendly interface with a persistent light/dark mode toggle for comfortable viewing in any environment. |
 
 ## 🏗️ System Architecture
@@ -95,6 +97,7 @@ This project utilizes a modern stack for web development, machine learning, and 
 ├── .env                   # (You create this) Stores secret keys and API credentials.
 └── templates/
     ├── base.html          # Base HTML template with Bootstrap and FontAwesome.
+    ├── history.html       # Page for visualizing historical sensor data with charts.
     ├── index.html         # The main dashboard page with all the data visualization components.
     └── login.html         # The secure login page for user authentication.
 ```
@@ -160,10 +163,12 @@ The simulator will begin sending data to the server every 3 seconds.
 
 ### 4. Access the Dashboard
 Open your web browser and navigate to **`http://127.0.0.1:5001`**.
-Log in with the demo credentials:
+
+On the first run, a default user is created. Log in with these credentials:
 *   **Username:** `farmer`
 *   **Password:** `farm123`
 
+These credentials are now stored securely in the application's database.
 You should now see the live dashboard, with data updating in real-time!
 
 ---

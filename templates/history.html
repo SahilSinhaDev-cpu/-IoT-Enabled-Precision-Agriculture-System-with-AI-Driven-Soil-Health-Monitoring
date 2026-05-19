@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block title %}Historical Data - AgriTech AI{% endblock %}
+
+{% block styles %}
+<style>
+    /* Custom styles for the history page */
+    body.dark-mode .card {
+        background-color: var(--dm-card-bg);
+        color: var(--dm-text);
+    }
+    body.dark-mode .card .card-title,
+    body.dark-mode .card .text-muted {
+        color: var(--dm-text) !important;
+    }
+    body.dark-mode .btn-outline-success {
+        color: var(--primary-green);
+        border-color: var(--primary-green);
+    }
+    body.dark-mode .btn-outline-success:hover {
+        color: white;
+        background-color: var(--primary-green);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-light mb-4">
+    <div class="container-fluid">
+        <a class="navbar-brand text-success fw-bold" href="{{ url_for('dashboard') }}">
+            <i class="fas fa-leaf"></i> AgriTech AI
+        </a>
+        <div class="d-flex align-items-center">
+            <!-- Link back to dashboard -->
+            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-success me-3">
+                <i class="fas fa-tachometer-alt"></i> Live Dashboard
+            </a>
+            <!-- Dark Mode Toggle -->
+            <div class="form-check form-switch me-3">
+                <input class="form-check-input" type="checkbox" role="switch" id="darkModeSwitch">
+                <label class="form-check-label" for="darkModeSwitch"><i class="fas fa-sun"></i></label>
+            </div>
+            <!-- Logout Button -->
+            <a href="/logout" class="btn btn-outline-danger">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid">
+    <div class="card p-3 p-md-4">
+        <h4 class="card-title mb-3">Historical Sensor Data (Last 100 Readings)</h4>
+        <!-- NEW: Date Range Filter Controls -->
+        <div class="row g-3 align-items-center mb-4 border-bottom pb-3">
+            <div class="col-auto">
+                <label for="startDate" class="col-form-label">From:</label>
+            </div>
+            <div class="col-auto">
+                <input type="date" id="startDate" class="form-control">
+            </div>
+            <div class="col-auto">
+                <label for="endDate" class="col-form-label">To:</label>
+            </div>
+            <div class="col-auto">
+                <input type="date" id="endDate" class="form-control">
+            </div>
+            <div class="col-auto">
+                <button id="filterBtn" class="btn btn-primary"><i class="fas fa-filter"></i> Filter</button>
+                <button id="resetBtn" class="btn btn-secondary ms-2"><i class="fas fa-undo"></i> Reset</button>
+                <button id="exportBtn" class="btn btn-success ms-2"><i class="fas fa-file-csv"></i> Export CSV</button>
+            </div>
+        </div>
+        <p class="text-muted">This chart displays the historical trends for key soil and environmental metrics. Data is shown from oldest (left) to newest (right).</p>
+        <div style="height: 500px;">
+            <canvas id="historyChart"></canvas>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    /**
+     * Use an IIFE (Immediately Invoked Function Expression) to create a private scope.
+     * This encapsulates all logic for the history page, preventing global namespace pollution.
+     */
+    (function HistoryPageApp() {
+        // --- 1. STATE & CONFIGURATION ---
+        const state = {
+            chartInstance: null
+        };
+
+        const config = {
+            api: {
+                history: '/api/history',
+                export: '/api/history/export'
+            }
+        };
+
+        // --- 2. DOM ELEMENT CACHE ---
+        // Caching DOM elements improves performance by reducing repeated queries.
+        const dom = {
+            historyChartCtx: document.getElementById('historyChart').getContext('2d'),
+            startDateInput: document.getElementById('startDate'),
+            endDateInput: document.getElementById('endDate'),
+            filterBtn: document.getElementById('filterBtn'),
+            resetBtn: document.getElementById('resetBtn'),
+            exportBtn: document.getElementById('exportBtn'),
+            themeSwitch: document.getElementById('darkModeSwitch'),
+            body: document.body,
+            themeIcon: document.querySelector('#darkModeSwitch + label i')
+        };
+
+        // --- 3. THEME MANAGER MODULE ---
+        // Groups all functions related to theme (light/dark mode) switching.
+        const themeManager = {
+            apply(theme) {
+                if (theme === 'dark') {
+                    dom.body.classList.add('dark-mode');
+                    dom.themeSwitch.checked = true;
+                    dom.themeIcon.classList.remove('fa-sun');
+                    dom.themeIcon.classList.add('fa-moon');
+                } else {
+                    dom.body.classList.remove('dark-mode');
+                    dom.themeSwitch.checked = false;
+                    dom.themeIcon.classList.remove('fa-moon');
+                    dom.themeIcon.classList.add('fa-sun');
+                }
+                if (state.chartInstance) {
+                    this.updateChart(theme);
+                }
+            },
+
+            updateChart(theme) {
+                const isDark = theme === 'dark';
+                const tickColor = isDark ? 'rgba(255, 255, 255, 0.7)' : '#6c757d';
+                const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+                const legendColor = isDark ? 'rgba(255, 255, 255, 0.9)' : '#2c3e50';
+                const titleColor = isDark ? 'rgba(255, 255, 255, 0.8)' : '#6c757d';
+
+                const options = state.chartInstance.options;
+                options.scales.x.ticks.color = tickColor;
+                options.scales.x.title.color = titleColor;
+                options.scales.y.ticks.color = tickColor;
+                options.scales.y.title.color = titleColor;
+                options.scales.y1.ticks.color = tickColor;
+                options.scales.y1.title.color = titleColor;
+                options.scales.x.grid.color = gridColor;
+                options.scales.y.grid.color = gridColor;
+                options.plugins.legend.labels.color = legendColor;
+                state.chartInstance.update();
+            },
+
+            loadSavedTheme() {
+                this.apply(localStorage.getItem('theme') || 'light');
+            }
+        };
+
+        // --- 4. CHART MANAGER MODULE ---
+        // Handles all logic related to fetching data and rendering the chart.
+        const chartManager = {
+            async fetchAndRender(url = config.api.history) {
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const rawData = await response.json();
+                    
+                    const data = rawData.reverse(); // API returns newest first
+
+                    const labels = data.map(d => new Date(d.timestamp).toLocaleString());
+                    const datasets = this.prepareDatasets(data);
+
+                    if (state.chartInstance) {
+                        state.chartInstance.destroy();
+                    }
+
+                    this.render(labels, datasets);
+                    themeManager.loadSavedTheme(); // Re-apply theme to new chart
+
+                } catch (error) {
+                    console.error("Failed to fetch historical data:", error);
+                    // Optionally, display an error message on the UI
+                }
+            },
+
+            prepareDatasets(data) {
+                return [
+                    { label: 'Nitrogen (N)', data: data.map(d => d.N), borderColor: '#28a745', yAxisID: 'y' },
+                    { label: 'Phosphorus (P)', data: data.map(d => d.P), borderColor: '#f0ad4e', yAxisID: 'y' },
+                    { label: 'Potassium (K)', data: data.map(d => d.K), borderColor: '#3498db', yAxisID: 'y' },
+                    { label: 'Temperature (°C)', data: data.map(d => d.temperature), borderColor: '#dc3545', yAxisID: 'y1', hidden: true },
+                    { label: 'Humidity (%)', data: data.map(d => d.humidity), borderColor: '#6f42c1', yAxisID: 'y1', hidden: true },
+                    { label: 'pH', data: data.map(d => d.ph), borderColor: '#fd7e14', yAxisID: 'y1', hidden: true },
+                    { label: 'Rainfall (mm)', data: data.map(d => d.rainfall), borderColor: '#0dcaf0', yAxisID: 'y', hidden: true }
+                ].map(ds => ({ ...ds, tension: 0.3, fill: false }));
+            },
+
+            render(labels, datasets) {
+                state.chartInstance = new Chart(dom.historyChartCtx, {
+                    type: 'line',
+                    data: { labels, datasets },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: { legend: { position: 'top' }, tooltip: { mode: 'index', intersect: false } },
+                        scales: {
+                            x: { title: { display: true, text: 'Timestamp' } },
+                            y: { type: 'linear', display: true, position: 'left', title: { display: true, text: 'Nutrient & Rainfall Value' }, beginAtZero: true },
+                            y1: { type: 'linear', display: true, position: 'right', title: { display: true, text: 'Temp / Humidity / pH' }, grid: { drawOnChartArea: false }, beginAtZero: true }
+                        }
+                    }
+                });
+            }
+        };
+
+        // --- 5. EVENT LISTENER INITIALIZATION ---
+        // Centralizes all event bindings for the page.
+        function initEventListeners() {
+            dom.themeSwitch.addEventListener('change', () => {
+                const newTheme = dom.themeSwitch.checked ? 'dark' : 'light';
+                localStorage.setItem('theme', newTheme);
+                themeManager.apply(newTheme);
+            });
+
+            dom.filterBtn.addEventListener('click', () => {
+                const startDate = dom.startDateInput.value;
+                const endDate = dom.endDateInput.value;
+                if (startDate && endDate) {
+                    chartManager.fetchAndRender(`${config.api.history}?start=${startDate}&end=${endDate}`);
+                } else {
+                    alert('Please select both a start and end date.');
+                }
+            });
+
+            dom.resetBtn.addEventListener('click', () => {
+                dom.startDateInput.value = '';
+                dom.endDateInput.value = '';
+                chartManager.fetchAndRender();
+            });
+
+            dom.exportBtn.addEventListener('click', () => {
+                const startDate = dom.startDateInput.value;
+                const endDate = dom.endDateInput.value;
+                let url = config.api.export;
+                if (startDate && endDate) {
+                    url += `?start=${startDate}&end=${endDate}`;
+                }
+                window.open(url, '_blank');
+            });
+        }
+
+        // --- 6. APP INITIALIZATION ---
+        // The main entry point for the page's script.
+        function init() {
+            themeManager.loadSavedTheme();
+            initEventListeners();
+            chartManager.fetchAndRender();
+        }
+
+        // Run the application
+        init();
+
+    })();
+});
+</script>
+{% endblock %}

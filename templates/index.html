@@ -107,6 +107,20 @@
         body.dark-mode .card {
             background-color: var(--dm-card-bg);
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            color: var(--dm-text); /* FIX: Set default text color for all card content. */
+        }
+
+        /* FIX: Specifically target headings and paragraphs inside cards that may have their own
+           default colors, ensuring they become light in dark mode. This is more specific
+           than the .status-optimal color, so it will correctly override it. */
+        body.dark-mode .card .card-title,
+        body.dark-mode .card h5,
+        body.dark-mode .card h6,
+        body.dark-mode .card p {
+            color: var(--dm-text);
+        }
+        body.dark-mode .status-optimal #status-text {
+            color: #28a745; /* FIX: Keep the "OPTIMAL" text vibrant and readable. */
         }
         body.dark-mode .navbar {
             background-color: var(--dm-card-bg);
@@ -141,6 +155,10 @@
             <i class="fas fa-leaf"></i> AgriTech AI
         </a>
         <div class="d-flex align-items-center">
+            <!-- NEW: Link to History Page -->
+            <a href="{{ url_for('history') }}" class="btn btn-outline-secondary me-3">
+                <i class="fas fa-history"></i> View History
+            </a>
             <!-- Dark Mode Toggle -->
             <div class="form-check form-switch me-3">
                 <input class="form-check-input" type="checkbox" role="switch" id="darkModeSwitch">
@@ -459,4 +477,5 @@ document.addEventListener('DOMContentLoaded', function () {
     fetchLiveData(); // Fetch data immediately on page load
     setInterval(fetchLiveData, 3000); // Refresh data every 3 seconds
 });
+
 </script>{% endblock %}
